@@ -52,7 +52,7 @@
 % Title
 % ====================
 
-\title{Offloading and Quantizing LLaMA-3.1-8B for Resource-Constrained Inference on NVIDIA RTX 3060 Ti}
+\title{Offloading and Quantizing Llama-3.1-8B-Instruct for Resource-Constrained Inference on NVIDIA RTX 3060 Ti}
 \author{111550165 吳宗樺, 111550087 林炫廷}
 
 % ====================
@@ -85,7 +85,7 @@
  % First zone: Setup and Implementation
  \begin{column}{\colwidth}
     \begin{block}{Abstract}
-      \textbf{\textcolor{blue}{Large language models (LLMs)}} like \textbf{LLaMA-3.1-8B} present substantial \textcolor{blue}{memory constraints}, limiting deployment on resource-constrained hardware. We explore strategies to enable efficient inference of LLaMA-3.1-8B on an \textbf{NVIDIA RTX 3060 Ti GPU}, which lacks sufficient VRAM for standard model execution.
+      \textbf{\textcolor{blue}{Large language models (LLMs)}} like \textbf{Llama-3.1-8B-Instruct} present substantial \textcolor{blue}{memory constraints}, limiting deployment on resource-constrained hardware. We explore strategies to enable efficient inference of Llama-3.1-8B-Instruct on an \textbf{NVIDIA RTX 3060 Ti GPU(8G RAM)}, which lacks sufficient VRAM for standard model execution.
 
 We begin by attempting to load the model in full precision, which immediately triggers \textbf{Out-of-Memory (OOM)} errors. To address this, we apply:
 
@@ -106,7 +106,7 @@ We begin by attempting to load the model in full precision, which immediately tr
     \end{block}   
     \begin{block}{Model Architecture}
       \begin{itemize}
-        \item \textbf{Model}: LLaMA-3.1-8B
+        \item \textbf{Model}: Llama-3.1-8B-Instruct
         \item \textbf{Architecture}: Transformer-based architecture with 8 billion parameters
         \item \textbf{Layers}: 32 transformer layers
         \item \textbf{Hidden Size}: 5120
@@ -117,17 +117,17 @@ We begin by attempting to load the model in full precision, which immediately tr
         \begin{subfigure}{0.48\colwidth}
           \centering
           \includegraphics[width=0.2\colwidth]{high\_level\_architecture.png}
-          \caption{The overview of LLaMA-3.1-8B architecture.}
+          \caption{The overview of Llama-3.1-8B-Instruct architecture.}
           \label{fig:llama_sturcture}
         \end{subfigure}
         \hfill
         \begin{subfigure}{0.48\colwidth}
           \centering
           \includegraphics[width=0.2\colwidth]{decoder\_layer\_detail.png}
-          \caption{Layer-wise parameter distribution in LLaMA-3.1-8B.}
+          \caption{Layer-wise parameter distribution in Llama-3.1-8B-Instruct.}
           \label{fig:decode_layer}
         \end{subfigure}
-        \caption{LLaMA-3.1-8B architecture and layer-wise parameter distribution.}
+        \caption{Llama-3.1-8B-Instruct architecture and layer-wise parameter distribution.}
       \end{figure}
   \end{block}
   \begin{block}{References}
@@ -147,18 +147,18 @@ We begin by attempting to load the model in full precision, which immediately tr
  % Second zone: Results and Analysis
  \begin{column}{\colwidth}
   \begin{block}{Preliminary Attempt}
-    We attempted to load the full-precision LLaMA-3.1-8B on RTX 3060 Ti immediately triggered CUDA OOM errors, confirming that direct inference is infeasible without optimization.
+    We attempted to load the full-precision Llama-3.1-8B-Instruct on RTX 3060 Ti immediately triggered CUDA OOM errors, confirming that direct inference is infeasible without optimization.
     \begin{figure}
       \centering
       \includegraphics[width=0.5\colwidth]{full\_size\_model.png}
-      \caption{LLaMA-3.1-8B model architecture and parameter distribution.}
+      \caption{Llama-3.1-8B-Instruct model architecture and parameter distribution.}
       \label{fig:model}
     \end{figure}
   \end{block}
   \vspace{-1em}
 
   \begin{block}{Experiment}
-    To evaluate the impact of quantization and offloading strategies on Llama-3.1-8B inference, 
+    To evaluate the impact of quantization and offloading strategies on Llama-3.1-8B-Instruct inference, 
     we conduct experiments on an NVIDIA 3060 Ti GPU.
     We assess performance based on:
     \vspace{-0.5em}
@@ -170,7 +170,7 @@ We begin by attempting to load the model in full precision, which immediately tr
     \vspace{-0.5em}
     \begin{table}
       \centering
-      \caption{Performance metrics for LLaMA-3.1-8B with base configurations.}
+      \caption{Performance metrics for Llama-3.1-8B-Instruct with base configurations.}
       \fontsize{16}{8.2}
       \begin{tabular}{@{}L{15cm}ccc@{}}
         \toprule
@@ -182,11 +182,28 @@ We begin by attempting to load the model in full precision, which immediately tr
     \end{tabular}
     \end{table}
    \end{block}
-
-  \begin{subblock}{Dynamic Offloading}
+   \begin{subblock}{Mixed-Precision Quantization}
+    \vspace{-0.5em}
     \begin{table}
       \centering
-      \caption{Performance metrics for LLaMA-3.1-8B with offloading configurations.}
+      \caption{Performance metrics for model with mixed-precision configurations.}
+      \fontsize{16}{8.2}
+      \begin{tabular}{@{}L{15cm}ccc@{}}
+        \toprule
+        \textbf{Configuration} & \textbf{OOM Error} & \textbf{Inference Speed (s)} & \textbf{Perplexity}\\
+        \midrule
+        Baseline (PTQ with INT8) & No & 33.320 & 7.293 \\
+        Mixed Precision (8b L4 \& L7, 4b elsewhere) & No & 13.141 & 7.291 \\
+        \bottomrule
+    \end{tabular}
+    \end{table}
+  \end{subblock}
+  \par\vspace{1em}
+  \begin{subblock}{Mixed-Precision Quantization With Offloading}
+    \vspace{-0.5em}
+    \begin{table}
+      \centering
+      \caption{Performance metrics for model with best performance configurations.}
       \fontsize{16}{8.2}
       \begin{tabular}{@{}L{15cm}ccc@{}}
         \toprule
@@ -194,30 +211,17 @@ We begin by attempting to load the model in full precision, which immediately tr
         \midrule
         HuggingFace's Offloading & No & 205.508 & 9075.724\\
         Our Offloading Strategy  & No & 159.728 & 7.234 \\
+        Our Offloading Strategy with Mixed Precision & No & 149.051 & 7.291 \\
         \bottomrule
     \end{tabular}
     \end{table}
   \end{subblock}
-  \par\vspace{1em}
-  \begin{subblock}{Mixed-Precision Quantization With Offloading}
-    \begin{table}
-      \centering
-      \caption{Performance metrics for LLaMA-3.1-8B with our configurations.}
-      \fontsize{16}{8.2}
-      \begin{tabular}{@{}L{15cm}ccc@{}}
-        \toprule
-        \textbf{Configuration} & \textbf{OOM Error} & \textbf{Inference Speed (s)} & \textbf{Perplexity}\\
-        \midrule
-        Mixed Precision + Our Offloading Strategy & No & 33.320 & 7.293\\
-        Mixed Precision (8b L4 \& L7, 4b elsewhere) & No & 13.141 & 7.291 \\
-        \bottomrule
-    \end{tabular}
-    \end{table}
-  \end{subblock}
+  
+  
   \vspace{-1em}
 
  \begin{block}{Conclusion}
-  We explored the feasibility of running the Llama-3.1-8B model on limited GPU resources using quantization and offloading techniques. 
+  We explored the feasibility of running the Llama-3.1-8B-Instruct model on limited GPU resources using quantization and offloading techniques. 
   These results highlight the practicality of combining quantization and offloading for resource-constrained environments. 
   \end{block}
   \begin{block}{Future Improvements}
@@ -236,7 +240,7 @@ We begin by attempting to load the model in full precision, which immediately tr
             \item Take more different configure and compare their speed, memory usage, and performance.
         \end{itemize}
     \end{itemize}
-    \vspace{0.35em}
+    \vspace{-0.1em}
   \end{block}
 
  \end{column}
